@@ -9,11 +9,11 @@
             --primary: #2563eb;
             --primary-dark: #1d4ed8;
             --accent: #f59e0b;
-            --bg: #0f172a;
-            --surface: #1e293b;
-            --surface-light: #334155;
-            --text: #f1f5f9;
-            --text-dim: #94a3b8;
+            --bg: #e8f5e9;
+            --surface: #f1faf2;
+            --surface-light: #d6edd8;
+            --text: #1b3a1f;
+            --text-dim: #5a8060;
             --danger: #ef4444;
             --success: #22c55e;
         }
@@ -29,7 +29,7 @@
             padding-bottom: 60px;
         }
 
-        .header { text-align: center; padding: 12px 0 6px; }
+        .header { text-align: center; padding: 6px 0 4px; }
         .header h1 {
             font-size: 1.8rem;
             font-weight: 700;
@@ -309,7 +309,6 @@
 
     <div class="header">
         <h1>Count-In Player</h1>
-        <p>YouTubeの曲にカウントインをつけて練習</p>
     </div>
 
     <!-- YouTube URL 入力 -->
@@ -367,12 +366,6 @@
                 </select>
             </div>
         </div>
-        <div class="volume-row">
-            <label>クリック音量</label>
-            <input type="range" id="click-volume" min="0" max="100" value="80">
-            <span class="volume-value" id="volume-value">80%</span>
-        </div>
-
         <!-- タイミング設定 -->
         <div class="timing-grid">
             <div class="timing-item">
@@ -417,6 +410,11 @@
             <button class="btn btn-stop" id="btn-stop" style="display:none;">
                 ■ 停止
             </button>
+        </div>
+        <div class="volume-row" style="margin-top:12px;">
+            <label>クリック音量</label>
+            <input type="range" id="click-volume" min="0" max="100" value="80">
+            <span class="volume-value" id="volume-value">80%</span>
         </div>
     </div>
 
