@@ -360,8 +360,8 @@
             <div class="form-group">
                 <label for="count-bars">カウントイン小節数</label>
                 <select id="count-bars">
-                    <option value="1">1小節</option>
-                    <option value="2" selected>2小節</option>
+                    <option value="1" selected>1小節</option>
+                    <option value="2">2小節</option>
                     <option value="3">3小節</option>
                     <option value="4">4小節</option>
                 </select>
@@ -880,7 +880,7 @@
 
             initAudioContext();
 
-            const bpm = parseInt(bpmInput.value);
+            const bpm = parseInt(bpmInput.value) || 120;
             if (!bpm || bpm < 20 || bpm > 300) {
                 alert('BPMは20〜300の範囲で入力してください');
                 return;
@@ -893,7 +893,6 @@
             nextNoteTime = startTime;
 
             // 先行再生: カウントイン終了の prelead 秒前にYouTubeを開始
-            const bpm            = parseInt(bpmInput.value) || 120;
             const secondsPerBeat = 60.0 / bpm;
             const beatsPerBar    = parseInt(timeSigSelect.value);
             const totalBars      = parseInt(countBarsSelect.value);
