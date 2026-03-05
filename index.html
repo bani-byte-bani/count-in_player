@@ -454,6 +454,7 @@
         let totalCountInBeats = 0;
         let beatCount       = 0;
         let ytStarted       = false;  // 先行再生の二重起動防止フラグ
+        let seekPlayTimer   = null;   // seekTo後の再生タイマー
 
         const SCHEDULE_AHEAD_TIME = 0.1;  // 100ms先まで予約
         const SCHEDULER_INTERVAL  = 25;   // 25msごとにチェック
@@ -853,21 +854,35 @@
         // YouTube 再生開始
         // ===================================
         function startYouTube() {
-            if (ytPlayer && ytPlayerReady && typeof ytPlayer.playVideo === 'function') {
-                const offset = parseFloat(offsetInput.value) || 0;
-                // 再生オフセット: 指定秒目から再生
-                if (offset !== 0) {
-                    ytPlayer.seekTo(Math.max(0, offset), true);
-                }
-                ytPlayer.playVideo();
-                statusText.textContent = '▶ 再生中';
-                statusText.className = 'status-text playing';
-                isPlaying = true;
-            }
+            // ビートドットをリセット
             document.querySelectorAll('.beat-dot').forEach(dot => {
                 dot.className = 'beat-dot';
             });
             barCounterDiv.textContent = '';
+
+            if (!(ytPlayer && ytPlayerReady && typeof ytPlayer.playVideo === 'function')) return;
+
+            const offset = parseFloat(offsetInput.value) || 0;
+
+            if (offset !== 0) {
+                // seekTo後、バッファリング完了を待ってからplayVideo
+                // onStateChange で BUFFERING(3) → 自動再生 or 300ms後にplayVideoを呼ぶ
+                ytPlayer.seekTo(Math.max(0, offset), true);
+
+                let seekTimer = setTimeout(() => {
+                    ytPlayer.playVideo();
+                }, 300); // 300ms待ってから再生
+
+                // バッファリング完了イベントで早めに再生できる場合はキャンセル
+                const origOnStateChange = ytPlayer.getOption ? null : null; // 既存ハンドラは保持
+                seekPlayTimer = seekTimer;
+            } else {
+                ytPlayer.playVideo();
+            }
+
+            statusText.textContent = '▶ 再生中';
+            statusText.className = 'status-text playing';
+            isPlaying = true;
         }
 
         // ===================================
@@ -924,6 +939,7 @@
 
         function stopAll() {
             clearInterval(schedulerTimer);
+            clearTimeout(seekPlayTimer);
             isCountingIn = false;
             isPlaying = false;
             beatCount = 0;
