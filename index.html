@@ -864,18 +864,13 @@
 
             const offset = parseFloat(offsetInput.value) || 0;
 
-            if (offset !== 0) {
-                // seekTo後、バッファリング完了を待ってからplayVideo
-                // onStateChange で BUFFERING(3) → 自動再生 or 300ms後にplayVideoを呼ぶ
-                ytPlayer.seekTo(Math.max(0, offset), true);
-
-                let seekTimer = setTimeout(() => {
-                    ytPlayer.playVideo();
-                }, 300); // 300ms待ってから再生
-
-                // バッファリング完了イベントで早めに再生できる場合はキャンセル
-                const origOnStateChange = ytPlayer.getOption ? null : null; // 既存ハンドラは保持
-                seekPlayTimer = seekTimer;
+            if (offset > 0) {
+                // ★修正: cueVideoById状態ではseekToが効かないため
+                // loadVideoById で指定秒数から直接再生する
+                ytPlayer.loadVideoById({
+                    videoId: currentVideoId,
+                    startSeconds: offset
+                });
             } else {
                 ytPlayer.playVideo();
             }
@@ -960,6 +955,75 @@
             btnStop.style.display = 'none';
             btnPlay.style.display = 'flex';
         }
+
+        // ===================================
+        // URLパラメータへの設定保存・復元
+        // ===================================
+
+        // 設定をURLパラメータに書き込む
+        function saveSettingsToUrl() {
+            const videoId = currentVideoId;
+            if (!videoId) return;
+
+            const params = new URLSearchParams({
+                v:       videoId,
+                bpm:     bpmInput.value,
+                sig:     timeSigSelect.value,
+                bars:    countBarsSelect.value,
+                offset:  offsetInput.value,
+                prelead: preleadInput.value,
+                vol:     clickVolumeSlider.value
+            });
+
+            // URLを書き換え（ページリロードなし）
+            const newUrl = location.pathname + '?' + params.toString();
+            history.replaceState(null, '', newUrl);
+        }
+
+        // URLパラメータから設定を復元する
+        function loadSettingsFromUrl() {
+            const params = new URLSearchParams(location.search);
+
+            if (params.has('bpm'))     bpmInput.value         = params.get('bpm');
+            if (params.has('sig'))     timeSigSelect.value    = params.get('sig');
+            if (params.has('bars'))    countBarsSelect.value  = params.get('bars');
+            if (params.has('offset'))  offsetInput.value      = parseFloat(params.get('offset')).toFixed(1);
+            if (params.has('prelead')) preleadInput.value     = parseFloat(params.get('prelead')).toFixed(1);
+            if (params.has('vol'))     {
+                clickVolumeSlider.value = params.get('vol');
+                volumeValueSpan.textContent = params.get('vol') + '%';
+            }
+
+            // BPM表示を更新
+            bpmDisplay.textContent = bpmInput.value;
+            updateBeatDisplay();
+
+            // 動画IDがあれば読み込む（YouTube API準備完了後に実行）
+            if (params.has('v')) {
+                const videoId = params.get('v');
+                youtubeUrlInput.value = 'https://www.youtube.com/watch?v=' + videoId;
+                // API準備完了後に読み込む（onYouTubeIframeAPIReady内でも対応済み）
+                if (ytApiReady) {
+                    loadYouTubeVideo(videoId);
+                } else {
+                    // API未準備の場合は準備完了後にフラグで対応（既存の仕組みで動く）
+                }
+            }
+        }
+
+        // 各設定変更時にURLを自動更新
+        [bpmInput, timeSigSelect, countBarsSelect, offsetInput, preleadInput, clickVolumeSlider].forEach(el => {
+            el.addEventListener('change', saveSettingsToUrl);
+        });
+        bpmInput.addEventListener('input', saveSettingsToUrl);
+
+        // 再生ボタンを押したときもURL保存
+        const _origPlayClick = btnPlay.onclick;
+        btnPlay.addEventListener('click', saveSettingsToUrl);
+
+        // ページ読み込み時に復元
+        loadSettingsFromUrl();
+
     </script>
 </body>
 </html>
