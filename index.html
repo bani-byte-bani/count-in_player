@@ -519,26 +519,25 @@
         // ===================================
         // YouTube プレーヤーの初期化
         // ===================================
-        function loadYouTubeVideo(videoId) {
+        function loadYouTubeVideo(videoId, startSeconds) {
             if (!ytApiReady) {
                 console.log('⏳ YouTube API がまだ準備中...');
                 return;
             }
 
-            console.log('🎬 動画を読み込み:', videoId);
+            const start = startSeconds || parseFloat(offsetInput.value) || 0;
+            console.log('🎬 動画を読み込み:', videoId, 'start:', start);
 
-            // プレースホルダーを非表示
             document.getElementById('player-placeholder').style.display = 'none';
 
-            if (ytPlayer && typeof ytPlayer.cueVideoById === 'function') {
-                // 既にプレーヤーが存在 → 動画だけ差し替え
-                ytPlayer.cueVideoById(videoId);
+            // 毎回 loadVideoById で再生成（startSeconds を確実に反映するため）
+            if (ytPlayer && typeof ytPlayer.loadVideoById === 'function') {
+                ytPlayer.cueVideoById({ videoId, startSeconds: start });
                 ytPlayerReady = true;
                 btnPlay.disabled = false;
                 urlStatus.textContent = '✅ 動画を読み込みました';
                 urlStatus.className = 'url-status ok';
             } else {
-                // プレーヤーを新規作成
                 urlStatus.textContent = '⏳ 動画を読み込み中...';
                 urlStatus.className = 'url-status loading';
 
@@ -550,7 +549,8 @@
                         'playsinline': 1,
                         'rel': 0,
                         'modestbranding': 1,
-                        'autoplay': 0
+                        'autoplay': 0,
+                        'start': Math.floor(start)  // ★ YouTubeのstartパラメータで初期位置を指定
                     },
                     events: {
                         'onReady': onPlayerReady,
@@ -854,7 +854,6 @@
         // YouTube 再生開始
         // ===================================
         function startYouTube() {
-            // ビートドットをリセット
             document.querySelectorAll('.beat-dot').forEach(dot => {
                 dot.className = 'beat-dot';
             });
@@ -862,18 +861,8 @@
 
             if (!(ytPlayer && ytPlayerReady && typeof ytPlayer.playVideo === 'function')) return;
 
-            const offset = parseFloat(offsetInput.value) || 0;
-
-            if (offset > 0) {
-                // ★修正: cueVideoById状態ではseekToが効かないため
-                // loadVideoById で指定秒数から直接再生する
-                ytPlayer.loadVideoById({
-                    videoId: currentVideoId,
-                    startSeconds: offset
-                });
-            } else {
-                ytPlayer.playVideo();
-            }
+            // offsetはプレーヤー生成時のstartパラメータで反映済みなのでplayVideoだけでOK
+            ytPlayer.playVideo();
 
             statusText.textContent = '▶ 再生中';
             statusText.className = 'status-text playing';
@@ -1016,6 +1005,13 @@
             el.addEventListener('change', saveSettingsToUrl);
         });
         bpmInput.addEventListener('input', saveSettingsToUrl);
+
+        // オフセット変更時はプレーヤーをリロードして開始位置を反映
+        offsetInput.addEventListener('change', function() {
+            if (currentVideoId) {
+                loadYouTubeVideo(currentVideoId);
+            }
+        });
 
         // 再生ボタンを押したときもURL保存
         const _origPlayClick = btnPlay.onclick;
